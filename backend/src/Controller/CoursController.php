@@ -94,6 +94,51 @@ class CoursController extends AbstractController
         ], 201);
     }
 
+    #[Route('/{id}', name: 'api_cours_update', methods: ['PUT'])]
+    public function update(
+        Cours $cours,
+        Request $request,
+        EntityManagerInterface $em,
+        ValidatorInterface $validator
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if ($cours->getAuteur() !== $user && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès refusé'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['titre'])) {
+            $cours->setTitre($data['titre']);
+        }
+        if (isset($data['description'])) {
+            $cours->setDescription($data['description']);
+        }
+        if (array_key_exists('fichier', $data)) {
+            $cours->setFichier($data['fichier']);
+        }
+
+        $cours->setUpdatedAt(new \DateTimeImmutable());
+
+        $errors = $validator->validate($cours);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return $this->json(['errors' => $errorMessages], 400);
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Cours mis à jour',
+            'id' => $cours->getId(),
+        ]);
+    }
+
     #[Route('/{id}/publish', name: 'api_cours_publish', methods: ['PATCH'])]
     public function publish(Cours $cours, EntityManagerInterface $em): JsonResponse
     {

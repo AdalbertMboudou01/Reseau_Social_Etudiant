@@ -69,6 +69,7 @@ class PublicationController extends AbstractController
 
         $publication = new Publication();
         $publication->setContenu($data['contenu'] ?? '');
+        $publication->setType($data['type'] ?? 'texte');
         $publication->setAuteur($user);
 
         if (!empty($data['image'])) {
@@ -91,6 +92,51 @@ class PublicationController extends AbstractController
             'message' => 'Publication créée',
             'id' => $publication->getId(),
         ], 201);
+    }
+
+    #[Route('/{id}', name: 'api_publications_update', methods: ['PUT'])]
+    public function update(
+        Publication $publication,
+        Request $request,
+        EntityManagerInterface $em,
+        ValidatorInterface $validator
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if ($publication->getAuteur() !== $user && !$this->isGranted('ROLE_ADMIN')) {
+            return $this->json(['error' => 'Accès refusé'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (isset($data['contenu'])) {
+            $publication->setContenu($data['contenu']);
+        }
+        if (isset($data['type'])) {
+            $publication->setType($data['type']);
+        }
+        if (array_key_exists('image', $data)) {
+            $publication->setImage($data['image']);
+        }
+
+        $publication->setUpdatedAt(new \DateTimeImmutable());
+
+        $errors = $validator->validate($publication);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[$error->getPropertyPath()] = $error->getMessage();
+            }
+            return $this->json(['errors' => $errorMessages], 400);
+        }
+
+        $em->flush();
+
+        return $this->json([
+            'message' => 'Publication mise à jour',
+            'id' => $publication->getId(),
+        ]);
     }
 
     #[Route('/{id}', name: 'api_publications_delete', methods: ['DELETE'])]

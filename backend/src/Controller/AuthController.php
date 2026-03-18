@@ -33,6 +33,15 @@ class AuthController extends AbstractController
         $user->setPrenom($data['prenom'] ?? '');
         $user->setRoles(['ROLE_ETUDIANT']);
 
+        if (!empty($data['universite'])) {
+            $user->setUniversite($data['universite']);
+        }
+        if (!empty($data['filiere'])) {
+            $user->setFiliere($data['filiere']);
+        }
+        if (!empty($data['anneeEtude'])) {
+            $user->setAnneeEtude((int) $data['anneeEtude']);
+        }
         if (!empty($data['bio'])) {
             $user->setBio($data['bio']);
         }
@@ -81,6 +90,9 @@ class AuthController extends AbstractController
             'prenom' => $user->getPrenom(),
             'photo' => $user->getPhoto(),
             'bio' => $user->getBio(),
+            'universite' => $user->getUniversite(),
+            'filiere' => $user->getFiliere(),
+            'anneeEtude' => $user->getAnneeEtude(),
             'roles' => $user->getRoles(),
             'createdAt' => $user->getCreatedAt()?->format('Y-m-d H:i:s'),
         ]);
@@ -107,6 +119,15 @@ class AuthController extends AbstractController
         }
         if (isset($data['photo'])) {
             $user->setPhoto($data['photo']);
+        }
+        if (isset($data['universite'])) {
+            $user->setUniversite($data['universite']);
+        }
+        if (isset($data['filiere'])) {
+            $user->setFiliere($data['filiere']);
+        }
+        if (isset($data['anneeEtude'])) {
+            $user->setAnneeEtude((int) $data['anneeEtude']);
         }
 
         $errors = $validator->validate($user);

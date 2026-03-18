@@ -50,6 +50,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true, type: 'text')]
     private ?string $bio = null;
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $universite = null;
+
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $filiere = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $anneeEtude = null;
+
     /** @var Collection<int, Publication> */
     #[ORM\OneToMany(targetEntity: Publication::class, mappedBy: 'auteur', orphanRemoval: true)]
     private Collection $publications;
@@ -62,16 +71,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: Like::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $likes;
 
-    /** @var Collection<int, Groupe> */
-    #[ORM\ManyToMany(targetEntity: Groupe::class, mappedBy: 'membres')]
-    private Collection $groupes;
+    /** @var Collection<int, Commentaire> */
+    #[ORM\OneToMany(targetEntity: Commentaire::class, mappedBy: 'auteur', orphanRemoval: true)]
+    private Collection $commentaires;
+
+    /** @var Collection<int, MembreGroupe> */
+    #[ORM\OneToMany(targetEntity: MembreGroupe::class, mappedBy: 'etudiant', orphanRemoval: true)]
+    private Collection $membreGroupes;
 
     public function __construct()
     {
         $this->publications = new ArrayCollection();
         $this->cours = new ArrayCollection();
         $this->likes = new ArrayCollection();
-        $this->groupes = new ArrayCollection();
+        $this->commentaires = new ArrayCollection();
+        $this->membreGroupes = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -202,26 +216,48 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->likes;
     }
 
-    /** @return Collection<int, Groupe> */
-    public function getGroupes(): Collection
+    public function getUniversite(): ?string
     {
-        return $this->groupes;
+        return $this->universite;
     }
 
-    public function addGroupe(Groupe $groupe): static
+    public function setUniversite(?string $universite): static
     {
-        if (!$this->groupes->contains($groupe)) {
-            $this->groupes->add($groupe);
-            $groupe->addMembre($this);
-        }
+        $this->universite = $universite;
         return $this;
     }
 
-    public function removeGroupe(Groupe $groupe): static
+    public function getFiliere(): ?string
     {
-        if ($this->groupes->removeElement($groupe)) {
-            $groupe->removeMembre($this);
-        }
+        return $this->filiere;
+    }
+
+    public function setFiliere(?string $filiere): static
+    {
+        $this->filiere = $filiere;
         return $this;
+    }
+
+    public function getAnneeEtude(): ?int
+    {
+        return $this->anneeEtude;
+    }
+
+    public function setAnneeEtude(?int $anneeEtude): static
+    {
+        $this->anneeEtude = $anneeEtude;
+        return $this;
+    }
+
+    /** @return Collection<int, Commentaire> */
+    public function getCommentaires(): Collection
+    {
+        return $this->commentaires;
+    }
+
+    /** @return Collection<int, MembreGroupe> */
+    public function getMembreGroupes(): Collection
+    {
+        return $this->membreGroupes;
     }
 }

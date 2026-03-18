@@ -23,6 +23,10 @@ class Publication
     #[ORM\Column(nullable: true, length: 255)]
     private ?string $image = null;
 
+    #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    private ?string $type = null;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -37,9 +41,14 @@ class Publication
     #[ORM\OneToMany(targetEntity: Like::class, mappedBy: 'publication', orphanRemoval: true)]
     private Collection $likes;
 
+    /** @var Collection<int, Commentaire> */
+    #[ORM\OneToMany(targetEntity: Commentaire::class, mappedBy: 'publication', orphanRemoval: true)]
+    private Collection $commentaires;
+
     public function __construct()
     {
         $this->likes = new ArrayCollection();
+        $this->commentaires = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -106,5 +115,27 @@ class Publication
     public function getLikesCount(): int
     {
         return $this->likes->count();
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
+    }
+
+    public function setType(string $type): static
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    /** @return Collection<int, Commentaire> */
+    public function getCommentaires(): Collection
+    {
+        return $this->commentaires;
+    }
+
+    public function getCommentairesCount(): int
+    {
+        return $this->commentaires->count();
     }
 }

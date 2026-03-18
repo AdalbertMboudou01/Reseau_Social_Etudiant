@@ -30,14 +30,13 @@ class Groupe
     #[ORM\JoinColumn(nullable: false)]
     private ?User $createur = null;
 
-    /** @var Collection<int, User> */
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'groupes')]
-    #[ORM\JoinTable(name: 'groupe_membre')]
-    private Collection $membres;
+    /** @var Collection<int, MembreGroupe> */
+    #[ORM\OneToMany(targetEntity: MembreGroupe::class, mappedBy: 'groupe', orphanRemoval: true)]
+    private Collection $membreGroupes;
 
     public function __construct()
     {
-        $this->membres = new ArrayCollection();
+        $this->membreGroupes = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -84,28 +83,14 @@ class Groupe
         return $this;
     }
 
-    /** @return Collection<int, User> */
-    public function getMembres(): Collection
+    /** @return Collection<int, MembreGroupe> */
+    public function getMembreGroupes(): Collection
     {
-        return $this->membres;
-    }
-
-    public function addMembre(User $membre): static
-    {
-        if (!$this->membres->contains($membre)) {
-            $this->membres->add($membre);
-        }
-        return $this;
-    }
-
-    public function removeMembre(User $membre): static
-    {
-        $this->membres->removeElement($membre);
-        return $this;
+        return $this->membreGroupes;
     }
 
     public function getMembresCount(): int
     {
-        return $this->membres->count();
+        return $this->membreGroupes->count();
     }
 }

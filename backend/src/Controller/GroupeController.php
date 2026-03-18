@@ -3,8 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Groupe;
+use App\Entity\MembreGroupe;
 use App\Entity\User;
 use App\Repository\GroupeRepository;
+use App\Repository\MembreGroupeRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,12 +41,13 @@ class GroupeController extends AbstractController
     #[Route('/{id}', name: 'api_groupes_show', methods: ['GET'])]
     public function show(Groupe $groupe): JsonResponse
     {
-        $membres = array_map(fn(User $u) => [
-            'id' => $u->getId(),
-            'nom' => $u->getNom(),
-            'prenom' => $u->getPrenom(),
-            'photo' => $u->getPhoto(),
-        ], $groupe->getMembres()->toArray());
+        $membres = array_map(fn(MembreGroupe $mg) => [
+            'id' => $mg->getEtudiant()->getId(),
+            'nom' => $mg->getEtudiant()->getNom(),
+            'prenom' => $mg->getEtudiant()->getPrenom(),
+            'photo' => $mg->getEtudiant()->getPhoto(),
+            'dateAdhesion' => $mg->getDateAdhesion()?->format('Y-m-d H:i:s'),
+        ], $groupe->getMembreGroupes()->toArray());
 
         return $this->json([
             'id' => $groupe->getId(),
@@ -75,7 +78,6 @@ class GroupeController extends AbstractController
         $groupe->setNom($data['nom'] ?? '');
         $groupe->setDescription($data['description'] ?? null);
         $groupe->setCreateur($user);
-        $groupe->addMembre($user);
 
         $errors = $validator->validate($groupe);
         if (count($errors) > 0) {
@@ -87,6 +89,13 @@ class GroupeController extends AbstractController
         }
 
         $em->persist($groupe);
+
+        // Le créateur rejoint automatiquement le groupe
+        $membre = new MembreGroupe();
+        $membre->setEtudiant($user);
+        $membre->setGroupe($groupe);
+        $em->persist($membre);
+
         $em->flush();
 
         return $this->json([
@@ -96,32 +105,37 @@ class GroupeController extends AbstractController
     }
 
     #[Route('/{id}/join', name: 'api_groupes_join', methods: ['POST'])]
-    public function join(Groupe $groupe, EntityManagerInterface $em): JsonResponse
+    public function join(Groupe $groupe, EntityManagerInterface $em, MembreGroupeRepository $mgRepo): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
-        if ($groupe->getMembres()->contains($user)) {
+        $existing = $mgRepo->findByEtudiantAndGroupe($user->getId(), $groupe->getId());
+        if ($existing) {
             return $this->json(['error' => 'Vous êtes déjà membre de ce groupe'], 400);
         }
 
-        $groupe->addMembre($user);
+        $membre = new MembreGroupe();
+        $membre->setEtudiant($user);
+        $membre->setGroupe($groupe);
+        $em->persist($membre);
         $em->flush();
 
         return $this->json(['message' => 'Vous avez rejoint le groupe']);
     }
 
     #[Route('/{id}/leave', name: 'api_groupes_leave', methods: ['POST'])]
-    public function leave(Groupe $groupe, EntityManagerInterface $em): JsonResponse
+    public function leave(Groupe $groupe, EntityManagerInterface $em, MembreGroupeRepository $mgRepo): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
-        if (!$groupe->getMembres()->contains($user)) {
+        $existing = $mgRepo->findByEtudiantAndGroupe($user->getId(), $groupe->getId());
+        if (!$existing) {
             return $this->json(['error' => 'Vous n\'êtes pas membre de ce groupe'], 400);
         }
 
-        $groupe->removeMembre($user);
+        $em->remove($existing);
         $em->flush();
 
         return $this->json(['message' => 'Vous avez quitté le groupe']);
