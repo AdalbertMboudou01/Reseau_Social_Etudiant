@@ -1,0 +1,35 @@
+# PHP
+backend/vendor/
+backend/var/
+backend/.env.local
+backend/.env.*.local
+backend/config/jwt/*.pem
+backend/.DS_Store
+
+# Node/React
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.DS_Store
+frontend/.eslintcache
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+docker-compose.override.local.yaml
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
