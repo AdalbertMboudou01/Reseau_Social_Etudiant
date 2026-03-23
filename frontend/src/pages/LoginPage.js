@@ -96,8 +96,8 @@ export default function LoginPage() {
                   type="email"
                   className="input-field"
                   placeholder="votre@email.com"
-                  value={form.username}
-                  onChange={e => setForm({ ...form, username: e.target.value })}
+                  value={form.email}
+                  onChange={e => setForm({ ...form, email: e.target.value })}
                   style={{ paddingLeft: 42 }}
                   required
                 />
