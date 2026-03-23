@@ -1,7 +1,21 @@
-
 services:
 ###> doctrine/doctrine-bundle ###
   database:
     ports:
       - "5434:5432"
 ###< doctrine/doctrine-bundle ###
+
+  backend:
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: "postgresql://app:!ChangeMe!@127.0.0.1:5432/app?serverVersion=16&charset=utf8"
+    ports:
+      - "8000:8000"
+    command: php -S 0.0.0.0:8000 -t public
+
+  frontend:
+    environment:
+      REACT_APP_API_URL: "http://localhost:8000/api"
+    ports:
+      - "3000:3000"
+    command: npm start

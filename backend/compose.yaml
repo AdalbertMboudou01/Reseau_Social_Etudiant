@@ -17,7 +17,45 @@ services:
       - database_data:/var/lib/postgresql/data:rw
       # You may use a bind-mounted host directory instead, so that it is harder to accidentally remove the volume and lose all your data!
       # - ./docker/db/data:/var/lib/postgresql/data:rw
+    ports:
+      - "5434:5432"
 ###< doctrine/doctrine-bundle ###
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql://app:!ChangeMe!@database:5432/app?serverVersion=16&charset=utf8"
+      APP_ENV: dev
+      APP_SECRET: 1e9eaf6b5761245f84602af99ce8611e
+      JWT_SECRET_KEY: "%kernel.project_dir%/config/jwt/private.pem"
+      JWT_PUBLIC_KEY: "%kernel.project_dir%/config/jwt/public.pem"
+      JWT_PASSPHRASE: "e541997b27ba6c326a7ea5ac6a9030ebf53c6cc78c39e22420a57dcdf82486a1"
+      CORS_ALLOW_ORIGIN: '^https?://(localhost|127\\\\.0\\\\.0\\\\.1|frontend)(:[0-9]+)?$$'
+    volumes:
+      - ./:/app
+    depends_on:
+      database:
+        condition: service_healthy
+    command: php -S 0.0.0.0:8000 -t public
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: "http://backend:8000/api"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm start
 
 volumes:
 ###> doctrine/doctrine-bundle ###
