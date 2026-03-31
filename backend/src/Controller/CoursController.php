@@ -18,20 +18,28 @@ class CoursController extends AbstractController
     #[Route('', name: 'api_cours_list', methods: ['GET'])]
     public function index(CoursRepository $repo): JsonResponse
     {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        // Récupérer les cours publiés + les cours non publiés de l'utilisateur
         $cours = $repo->findPublished();
+        $userUnpublishedCours = $repo->findBy(['auteur' => $user, 'isPublished' => false]);
+
+        $allCours = array_merge($cours, $userUnpublishedCours);
 
         $data = array_map(fn(Cours $c) => [
             'id' => $c->getId(),
             'titre' => $c->getTitre(),
             'description' => $c->getDescription(),
             'fichier' => $c->getFichier(),
+            'isPublished' => $c->isPublished(),
             'auteur' => [
                 'id' => $c->getAuteur()->getId(),
                 'nom' => $c->getAuteur()->getNom(),
                 'prenom' => $c->getAuteur()->getPrenom(),
             ],
             'createdAt' => $c->getCreatedAt()?->format('Y-m-d H:i:s'),
-        ], $cours);
+        ], $allCours);
 
         return $this->json($data);
     }

@@ -77,6 +77,14 @@ class AuthController extends AbstractController
         ], 201);
     }
 
+    #[Route('/login', name: 'api_login', methods: ['POST'])]
+    public function login(): JsonResponse
+    {
+        // Ce point de terminaison est géré par le firewall json_login de Symfony.
+        // Si vous voyez cette exception, la sécurité n'a pas intercepté la requête.
+        throw new \RuntimeException('Route /api/login non gérée par json_login.');
+    }
+
     #[Route('/profile', name: 'api_profile', methods: ['GET'])]
     public function profile(): JsonResponse
     {
@@ -151,6 +159,23 @@ class AuthController extends AbstractController
                 'photo' => $user->getPhoto(),
                 'bio' => $user->getBio(),
             ]
+        ]);
+    }
+
+    #[Route('/users/{id}', name: 'api_public_profile', methods: ['GET'])]
+    public function getPublicProfile(User $user): JsonResponse
+    {
+        return $this->json([
+            'id' => $user->getId(),
+            'email' => $user->getEmail(),
+            'nom' => $user->getNom(),
+            'prenom' => $user->getPrenom(),
+            'photo' => $user->getPhoto(),
+            'bio' => $user->getBio(),
+            'universite' => $user->getUniversite(),
+            'filiere' => $user->getFiliere(),
+            'anneeEtude' => $user->getAnneeEtude(),
+            'createdAt' => $user->getCreatedAt()?->format('Y-m-d H:i:s'),
         ]);
     }
 }

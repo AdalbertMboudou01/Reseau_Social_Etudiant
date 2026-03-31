@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Commentaire;
 use App\Entity\Publication;
 use App\Entity\User;
+use App\Entity\Notification;
 use App\Repository\CommentaireRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -68,6 +69,20 @@ class CommentaireController extends AbstractController
         }
 
         $em->persist($commentaire);
+
+        // Create notification for publication author
+        if ($publication->getAuteur()->getId() !== $user->getId()) {
+            $notification = new Notification();
+            $notification->setUtilisateur($publication->getAuteur());
+            $notification->setType('comment');
+            $notification->setAuteur($user);
+            $notification->setContenu('a commenté votre publication');
+            $notification->setRelatedId($publication->getId());
+            $notification->setRelatedType('publication');
+            $notification->setLue(false);
+            $em->persist($notification);
+        }
+
         $em->flush();
 
         return $this->json([

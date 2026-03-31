@@ -1,14 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { getUnreadCount } from '../services/api';
+import SearchBar from './SearchBar';
 import {
-  Home, Users, BookOpen, User, LogOut, Menu, X, ShieldCheck, GraduationCap
+  Home, Users, BookOpen, User, LogOut, ShieldCheck, GraduationCap, MessageCircle, UserCheck, Bell, Calendar
 } from 'lucide-react';
 
 const navLinks = [
   { to: '/', icon: Home, label: 'Accueil' },
   { to: '/groupes', icon: Users, label: 'Groupes' },
+  { to: '/messages', icon: MessageCircle, label: 'Messages' },
+  { to: '/amis', icon: UserCheck, label: 'Amis' },
   { to: '/cours', icon: BookOpen, label: 'Cours' },
+  { to: '/evenements', icon: Calendar, label: 'Événements' },
   { to: '/profil', icon: User, label: 'Mon Profil' },
 ];
 
@@ -17,6 +22,24 @@ export default function Layout({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const count = await getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Erreur lors du chargement des notifications:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logoutUser();
@@ -77,6 +100,11 @@ export default function Layout({ children }) {
           </div>
         </div>
 
+        {/* Search Bar */}
+        <div style={{ padding: '16px 12px', borderBottom: '1px solid var(--border)' }}>
+          <SearchBar />
+        </div>
+
         {/* Nav */}
         <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {navLinks.map(({ to, icon: Icon, label }) => {
@@ -103,6 +131,40 @@ export default function Layout({ children }) {
               </Link>
             );
           })}
+
+          {/* Notifications link */}
+          <Link
+            to="/notifications"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '11px 14px', borderRadius: 10,
+              color: location.pathname === '/notifications' ? 'white' : 'var(--text2)',
+              background: location.pathname === '/notifications' ? 'var(--accent)' : 'transparent',
+              fontWeight: location.pathname === '/notifications' ? 600 : 400,
+              fontSize: 14,
+              textDecoration: 'none',
+              transition: 'all 0.2s',
+              position: 'relative',
+            }}
+            onMouseEnter={e => { if (location.pathname !== '/notifications') { e.currentTarget.style.background = 'var(--bg3)'; e.currentTarget.style.color = 'var(--text)'; } }}
+            onMouseLeave={e => { if (location.pathname !== '/notifications') { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text2)'; } }}
+          >
+            <Bell size={18} />
+            Notifications
+            {unreadCount > 0 && (
+              <span style={{
+                marginLeft: 'auto',
+                background: 'var(--accent2)',
+                color: 'white',
+                borderRadius: '50%',
+                width: 22, height: 22,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700,
+              }}>
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </Link>
 
           {isAdmin() && (
             <Link

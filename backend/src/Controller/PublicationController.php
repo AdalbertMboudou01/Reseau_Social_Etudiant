@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Publication;
 use App\Entity\Like;
 use App\Entity\User;
+use App\Entity\Notification;
 use App\Repository\LikeRepository;
 use App\Repository\PublicationRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -177,6 +178,20 @@ class PublicationController extends AbstractController
         $like->setPublication($publication);
 
         $em->persist($like);
+
+        // Create notification for publication author
+        if ($publication->getAuteur()->getId() !== $user->getId()) {
+            $notification = new Notification();
+            $notification->setUtilisateur($publication->getAuteur());
+            $notification->setType('like');
+            $notification->setAuteur($user);
+            $notification->setContenu('a aimé votre publication');
+            $notification->setRelatedId($publication->getId());
+            $notification->setRelatedType('publication');
+            $notification->setLue(false);
+            $em->persist($notification);
+        }
+
         $em->flush();
 
         return $this->json(['message' => 'Publication likée', 'liked' => true], 201);

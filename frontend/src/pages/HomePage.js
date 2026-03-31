@@ -91,7 +91,10 @@ function CommentSection({ pub, currentUser }) {
               <Avatar user={c.auteur} />
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  <span
+                    onClick={() => window.location.href = `/users/${c.auteur.id}`}
+                    style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--accent)' }}
+                  >
                     {c.auteur.prenom} {c.auteur.nom}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -148,7 +151,12 @@ function PostCard({ pub, currentUser, onDelete, onLike }) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <Avatar user={pub.auteur} />
           <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>
+            <div
+              onClick={() => window.location.href = `/users/${pub.auteur.id}`}
+              style={{ fontWeight: 600, fontSize: 14, cursor: 'pointer', color: 'var(--accent)', transition: 'opacity 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
               {pub.auteur.prenom} {pub.auteur.nom}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text3)' }}>{timeAgo(pub.createdAt)}</div>

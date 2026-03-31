@@ -163,7 +163,14 @@ export default function CoursPage() {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: 'var(--text3)' }}>
-                        Par {c.auteur.prenom} {c.auteur.nom} · {new Date(c.createdAt).toLocaleDateString('fr-FR')}
+                        Par{' '}
+                        <span
+                          onClick={() => window.location.href = `/users/${c.auteur.id}`}
+                          style={{ cursor: 'pointer', color: 'var(--accent)', fontWeight: 500 }}
+                        >
+                          {c.auteur.prenom} {c.auteur.nom}
+                        </span>
+                        {' '}· {new Date(c.createdAt).toLocaleDateString('fr-FR')}
                       </span>
                       {c.fichier && (
                         <a

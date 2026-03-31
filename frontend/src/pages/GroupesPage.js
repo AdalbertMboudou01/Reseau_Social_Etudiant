@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getGroupes, createGroupe, joinGroupe, leaveGroupe } from '../services/api';
 import { Users, Plus, AlertCircle, X, LogIn, LogOut, Crown } from 'lucide-react';
 
 export default function GroupesPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [groupes, setGroupes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -151,7 +153,11 @@ export default function GroupesPage() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                 gap: 16,
               }}>
-                <div style={{ display: 'flex', gap: 14, flex: 1, minWidth: 0 }}>
+                {/* Cliquable group content */}
+                <div
+                  style={{ display: 'flex', gap: 14, flex: 1, minWidth: 0, cursor: 'pointer' }}
+                  onClick={() => navigate(`/groupes/${groupe.id}`)}
+                >
                   {/* Icon */}
                   <div style={{
                     width: 48, height: 48, borderRadius: 12, flexShrink: 0,
@@ -190,13 +196,23 @@ export default function GroupesPage() {
                         {groupe.membresCount} membre{groupe.membresCount !== 1 ? 's' : ''}
                       </span>
                       <span>
-                        Par {groupe.createur.prenom} {groupe.createur.nom}
+                        Par{' '}
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.location.href = `/users/${groupe.createur.id}`;
+                          }}
+                          style={{ cursor: 'pointer', color: 'var(--accent)', fontWeight: 500 }}
+                        >
+                          {groupe.createur.prenom} {groupe.createur.nom}
+                        </span>
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div>
+                {/* Action buttons */}
+                <div onClick={e => e.stopPropagation()}>
                   {!creator && (
                     member ? (
                       <button
