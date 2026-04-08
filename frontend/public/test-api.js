@@ -4,7 +4,14 @@
  */
 
 const testApiCalls = async () => {
-  const token = localStorage.getItem('token');
+  let token = localStorage.getItem('token');
+  if (token) {
+    token = token.trim().replace(/^["']|["']$/g, '');
+  }
+  if (!token) {
+    console.error('❌ Aucun token dans localStorage. Connecte-toi sur http://localhost:3000 puis relance ce script.');
+    return;
+  }
   const headers = {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'

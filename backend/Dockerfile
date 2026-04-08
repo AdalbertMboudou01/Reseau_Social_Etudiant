@@ -37,4 +37,4 @@ RUN composer dump-autoload --optimize --no-dev --classmap-authoritative \
 
 EXPOSE 8000
 
-CMD ["php", "-S", "0.0.0.0:8000", "-t", "public"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public", "public/index.php"]

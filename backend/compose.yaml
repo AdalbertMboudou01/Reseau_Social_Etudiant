@@ -39,7 +39,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
-    command: php -S 0.0.0.0:8000 -t public
+    # public/index.php comme routeur : sans cela, /api/* renvoie 404 (fichier inexistant sous public/)
+    command: php -S 0.0.0.0:8000 -t public public/index.php
 
   frontend:
     build:

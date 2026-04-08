@@ -82,32 +82,52 @@ class AmitieRepository extends ServiceEntityRepository
 
     public function findSuggestions(User $user, int $limit = 10): array
     {
-        // Récupère les IDs de tous les utilisateurs avec une relation existante
-        // (peu importe le statut: amis acceptés, demandes envoyées/reçues, etc.)
-        $connectedUserIds = $this->createQueryBuilder('a')
-            ->select('DISTINCT CASE 
-                WHEN a.user1 = :user THEN a.user2
-                WHEN a.user2 = :user THEN a.user1
-            END as userId')
-            ->where('a.user1 = :user OR a.user2 = :user')
-            ->setParameter('user', $user)
-            ->getQuery()
-            ->getArrayResult();
+        $myId = $user->getId();
+        if (null === $myId || $myId <= 0) {
+            return [];
+        }
 
-        // Extrait les IDs
-        $connectedIds = array_map(fn($row) => $row['userId'], $connectedUserIds);
-        $connectedIds[] = $user->getId(); // Ajoute l'utilisateur courant
+        $lim = max(1, min(50, $limit));
 
-        // Récupère les utilisateurs sans relations avec l'utilisateur courant
-        $qb = $this->_em->createQueryBuilder();
-        return $qb
-            ->select('u')
-            ->from('App\Entity\User', 'u')
-            ->where('u.id NOT IN (:excludeIds)')
-            ->setParameter('excludeIds', $connectedIds ?: [0]) // [0] si liste vide
-            ->orderBy('u.id', 'DESC') // Pour varier les suggestions
-            ->setMaxResults($limit)
-            ->getQuery()
-            ->getResult();
+        // Tout en SQL PostgreSQL (tables réelles) : évite NOT IN + tableau en DQL
+        // (souvent source de 500 selon la version Doctrine / le driver).
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = <<<SQL
+            SELECT u.id
+            FROM "user" u
+            WHERE u.id <> :mid
+              AND u.id NOT IN (
+                SELECT a.user2_id FROM amitie a WHERE a.user1_id = :mid_a
+                UNION
+                SELECT a.user1_id FROM amitie a WHERE a.user2_id = :mid_b
+              )
+            ORDER BY u.id DESC
+            LIMIT {$lim}
+            SQL;
+
+        $result = $conn->executeQuery($sql, [
+            'mid' => $myId,
+            'mid_a' => $myId,
+            'mid_b' => $myId,
+        ]);
+
+        $ids = array_map(intval(...), $result->fetchFirstColumn());
+        if ($ids === []) {
+            return [];
+        }
+
+        $em = $this->getEntityManager();
+        $users = [];
+        foreach ($ids as $id) {
+            if ($id <= 0) {
+                continue;
+            }
+            $candidate = $em->find(User::class, $id);
+            if (null !== $candidate) {
+                $users[] = $candidate;
+            }
+        }
+
+        return $users;
     }
 }
