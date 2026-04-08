@@ -17,6 +17,8 @@ class NotificationRepository extends ServiceEntityRepository
     public function findByUtilisateur(User $user, int $limit = 50): array
     {
         return $this->createQueryBuilder('n')
+            ->leftJoin('n.auteur', 'a')
+            ->addSelect('a')
             ->where('n.utilisateur = :user')
             ->setParameter('user', $user)
             ->orderBy('n.createdAt', 'DESC')
@@ -38,6 +40,8 @@ class NotificationRepository extends ServiceEntityRepository
     public function findUnread(User $user, int $limit = 20): array
     {
         return $this->createQueryBuilder('n')
+            ->leftJoin('n.auteur', 'a')
+            ->addSelect('a')
             ->where('n.utilisateur = :user AND n.lue = false')
             ->setParameter('user', $user)
             ->orderBy('n.createdAt', 'DESC')

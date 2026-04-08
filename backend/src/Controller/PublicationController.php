@@ -19,25 +19,42 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 class PublicationController extends AbstractController
 {
     #[Route('', name: 'api_publications_list', methods: ['GET'])]
-    public function index(PublicationRepository $repo): JsonResponse
+    public function index(Request $request, PublicationRepository $repo, LikeRepository $likeRepo): JsonResponse
     {
-        $publications = $repo->findAllOrderedByDate();
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+        $page = max(1, $request->query->getInt('page', 1));
+        $limit = min(50, max(1, $request->query->getInt('limit', 10)));
+        $total = $repo->countAll();
+        $publications = $repo->findAllOrderedByDate($page, $limit);
 
-        $data = array_map(fn(Publication $p) => [
+        // Fetch all liked publication IDs for current user in one query
+        $likedIds = $likeRepo->getLikedPublicationIds($currentUser);
+
+        $items = array_map(fn(Publication $p) => [
             'id' => $p->getId(),
             'contenu' => $p->getContenu(),
             'image' => $p->getImage(),
             'likesCount' => $p->getLikesCount(),
+            'liked' => in_array($p->getId(), $likedIds),
             'auteur' => [
                 'id' => $p->getAuteur()->getId(),
                 'nom' => $p->getAuteur()->getNom(),
                 'prenom' => $p->getAuteur()->getPrenom(),
                 'photo' => $p->getAuteur()->getPhoto(),
             ],
-            'createdAt' => $p->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'createdAt' => $p->getCreatedAt() ? $p->getCreatedAt()->format('Y-m-d H:i:s') : null,
         ], $publications);
 
-        return $this->json($data);
+        return $this->json([
+            'items' => $items,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $total,
+                'hasMore' => ($page * $limit) < $total,
+            ],
+        ]);
     }
 
     #[Route('/{id}', name: 'api_publications_show', methods: ['GET'])]
@@ -54,7 +71,7 @@ class PublicationController extends AbstractController
                 'prenom' => $publication->getAuteur()->getPrenom(),
                 'photo' => $publication->getAuteur()->getPhoto(),
             ],
-            'createdAt' => $publication->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'createdAt' => $publication->getCreatedAt() ? $publication->getCreatedAt()->format('Y-m-d H:i:s') : null,
         ]);
     }
 

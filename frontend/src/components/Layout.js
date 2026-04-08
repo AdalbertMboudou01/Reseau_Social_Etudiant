@@ -28,10 +28,10 @@ export default function Layout({ children }) {
   useEffect(() => {
     const fetchUnreadCount = async () => {
       try {
-        const count = await getUnreadCount();
-        setUnreadCount(count);
+        const res = await getUnreadCount();
+        setUnreadCount(res.data?.count ?? 0);
       } catch (error) {
-        console.error('Erreur lors du chargement des notifications:', error);
+        // silently ignore
       }
     };
 

@@ -40,8 +40,8 @@ class EvenementController extends AbstractController
             'id' => $e->getId(),
             'titre' => $e->getTitre(),
             'description' => $e->getDescription(),
-            'dateDebut' => $e->getDateDebut()?->format('c'),
-            'dateFin' => $e->getDateFin()?->format('c'),
+            'dateDebut' => $e->getDateDebut() ? $e->getDateDebut()->format('c') : null,
+            'dateFin' => $e->getDateFin() ? $e->getDateFin()->format('c') : null,
             'lieu' => $e->getLieu(),
             'type' => $e->getType(),
             'capaciteMax' => $e->getCapaciteMax(),
@@ -57,7 +57,7 @@ class EvenementController extends AbstractController
                 'id' => $e->getGroupe()->getId(),
                 'nom' => $e->getGroupe()->getNom(),
             ] : null,
-            'createdAt' => $e->getCreatedAt()?->format('c'),
+            'createdAt' => $e->getCreatedAt() ? $e->getCreatedAt()->format('c') : null,
         ], $evenements);
 
         return $this->json($data);
@@ -122,15 +122,17 @@ class EvenementController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        $inscriptions = $inscRepo->findUpcomingForUtilisateur($user, 50);
+        $inscriptions = $inscRepo->findAllForUtilisateur($user, 100);
 
         $data = array_map(fn(InscriptionEvenement $i) => [
             'id' => $i->getEvenement()->getId(),
             'titre' => $i->getEvenement()->getTitre(),
-            'dateDebut' => $i->getEvenement()->getDateDebut()?->format('c'),
-            'dateFin' => $i->getEvenement()->getDateFin()?->format('c'),
+            'dateDebut' => $i->getEvenement()->getDateDebut() ? $i->getEvenement()->getDateDebut()->format('c') : null,
+            'dateFin' => $i->getEvenement()->getDateFin() ? $i->getEvenement()->getDateFin()->format('c') : null,
             'lieu' => $i->getEvenement()->getLieu(),
             'type' => $i->getEvenement()->getType(),
+            'nombreInscrits' => $i->getEvenement()->getNombreInscrits(),
+            'capaciteMax' => $i->getEvenement()->getCapaciteMax(),
             'createur' => [
                 'id' => $i->getEvenement()->getCreateur()->getId(),
                 'prenom' => $i->getEvenement()->getCreateur()->getPrenom(),
@@ -152,8 +154,8 @@ class EvenementController extends AbstractController
             'id' => $evenement->getId(),
             'titre' => $evenement->getTitre(),
             'description' => $evenement->getDescription(),
-            'dateDebut' => $evenement->getDateDebut()?->format('c'),
-            'dateFin' => $evenement->getDateFin()?->format('c'),
+            'dateDebut' => $evenement->getDateDebut() ? $evenement->getDateDebut()->format('c') : null,
+            'dateFin' => $evenement->getDateFin() ? $evenement->getDateFin()->format('c') : null,
             'lieu' => $evenement->getLieu(),
             'type' => $evenement->getType(),
             'capaciteMax' => $evenement->getCapaciteMax(),
@@ -171,7 +173,7 @@ class EvenementController extends AbstractController
                 'id' => $evenement->getGroupe()->getId(),
                 'nom' => $evenement->getGroupe()->getNom(),
             ] : null,
-            'createdAt' => $evenement->getCreatedAt()?->format('c'),
+            'createdAt' => $evenement->getCreatedAt() ? $evenement->getCreatedAt()->format('c') : null,
         ]);
     }
 

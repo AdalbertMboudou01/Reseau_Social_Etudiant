@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   getPublications, createPublication, deletePublication,
@@ -9,6 +9,8 @@ import {
   MoreHorizontal, Plus, X
 } from 'lucide-react';
 
+const PAGE_SIZE = 10;
+
 function timeAgo(dateStr) {
   const diff = (Date.now() - new Date(dateStr)) / 1000;
   if (diff < 60) return 'à l\'instant';
@@ -17,16 +19,16 @@ function timeAgo(dateStr) {
   return `il y a ${Math.floor(diff / 86400)}j`;
 }
 
-function Avatar({ user, size = '' }) {
+const Avatar = memo(function Avatar({ user, size = '' }) {
   const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`.toUpperCase();
   return (
     <div className={`avatar ${size}`}>
       {user?.photo ? <img src={user.photo} alt="" /> : initials}
     </div>
   );
-}
+});
 
-function CommentSection({ pub, currentUser }) {
+const CommentSection = memo(function CommentSection({ pub, currentUser }) {
   const [comments, setComments] = useState([]);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -138,9 +140,9 @@ function CommentSection({ pub, currentUser }) {
       )}
     </div>
   );
-}
+});
 
-function PostCard({ pub, currentUser, onDelete, onLike }) {
+const PostCard = memo(function PostCard({ pub, currentUser, onDelete, onLike }) {
   const isOwner = currentUser?.id === pub.auteur.id;
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -227,33 +229,51 @@ function PostCard({ pub, currentUser, onDelete, onLike }) {
       </div>
     </div>
   );
-}
+});
 
 export default function HomePage() {
   const { user } = useAuth();
   const [publications, setPublications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [newPost, setNewPost] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [showImageInput, setShowImageInput] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
-  useEffect(() => {
-    loadPubs();
-  }, []);
+  const loadPubs = useCallback(async (pageToLoad = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
 
-  const loadPubs = async () => {
-    setLoading(true);
     try {
-      const res = await getPublications();
-      setPublications(res.data);
+      const res = await getPublications({ page: pageToLoad, limit: PAGE_SIZE });
+      const items = res.data.items || [];
+      const pagination = res.data.pagination || {};
+
+      setError('');
+      setPublications(prev => (append ? [...prev, ...items] : items));
+      setCurrentPage(pagination.page || pageToLoad);
+      setHasMore(Boolean(pagination.hasMore));
     } catch {
       setError('Erreur lors du chargement des publications.');
     } finally {
-      setLoading(false);
+      if (append) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPubs();
+  }, [loadPubs]);
 
   const handlePost = async (e) => {
     e.preventDefault();
@@ -265,7 +285,7 @@ export default function HomePage() {
       setNewPost('');
       setImageUrl('');
       setShowImageInput(false);
-      loadPubs();
+      loadPubs(1);
     } catch (err) {
       setError(err.response?.data?.error || 'Erreur lors de la publication.');
     } finally {
@@ -273,14 +293,14 @@ export default function HomePage() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     try {
       await deletePublication(id);
       setPublications(p => p.filter(x => x.id !== id));
     } catch {}
-  };
+  }, []);
 
-  const handleLike = async (id) => {
+  const handleLike = useCallback(async (id) => {
     try {
       const res = await likePublication(id);
       setPublications(prev => prev.map(p => {
@@ -292,7 +312,13 @@ export default function HomePage() {
         };
       }));
     } catch {}
-  };
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      loadPubs(currentPage + 1, true);
+    }
+  }, [currentPage, hasMore, loadPubs, loadingMore]);
 
   const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`.toUpperCase();
 
@@ -380,15 +406,28 @@ export default function HomePage() {
           <p>Soyez le premier à partager quelque chose !</p>
         </div>
       ) : (
-        publications.map(pub => (
-          <PostCard
-            key={pub.id}
-            pub={pub}
-            currentUser={user}
-            onDelete={handleDelete}
-            onLike={handleLike}
-          />
-        ))
+        <>
+          {publications.map(pub => (
+            <PostCard
+              key={pub.id}
+              pub={pub}
+              currentUser={user}
+              onDelete={handleDelete}
+              onLike={handleLike}
+            />
+          ))}
+          {hasMore && (
+            <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 24 }}>
+              <button
+                className="btn btn-secondary"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Chargement...' : 'Charger plus'}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

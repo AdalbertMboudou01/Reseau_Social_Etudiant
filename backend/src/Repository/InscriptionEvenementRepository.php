@@ -48,6 +48,18 @@ class InscriptionEvenementRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    public function findAllForUtilisateur(User $user, int $limit = 100): array
+    {
+        return $this->createQueryBuilder('i')
+            ->join('i.evenement', 'e')
+            ->where('i.utilisateur = :user')
+            ->setParameter('user', $user)
+            ->orderBy('e.dateDebut', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function findUpcomingForUtilisateur(User $user, int $limit = 20)
     {
         return $this->createQueryBuilder('i')

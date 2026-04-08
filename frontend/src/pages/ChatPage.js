@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getConversation, sendPrivateMessage } from '../services/api';
 import { ArrowLeft, Send, MessageCircle } from 'lucide-react';
+
+const POLL_INTERVAL = 5000;
 
 export default function ChatPage() {
   const { userId } = useParams();
@@ -12,35 +14,65 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const messagesEndRef = useRef(null);
+  const pollRef = useRef(null);
 
-  useEffect(() => {
-    loadConversation();
-  }, [userId]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  const loadConversation = async () => {
-    setLoading(true);
+  const loadConversation = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await getConversation(userId);
       setConversation(res.data);
     } catch (err) {
-      console.error(err);
-      navigate('/messages');
+      if (!silent) {
+        console.error(err);
+        navigate('/messages');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  };
+  }, [userId, navigate]);
+
+  useEffect(() => {
+    loadConversation();
+    pollRef.current = setInterval(() => loadConversation(true), POLL_INTERVAL);
+    return () => clearInterval(pollRef.current);
+  }, [loadConversation]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation?.messages?.length]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
+    const optimistic = {
+      id: `tmp-${Date.now()}`,
+      contenu: message,
+      createdAt: new Date().toISOString(),
+      expediteur: { id: user?.id, prenom: user?.prenom, photo: user?.photo },
+    };
+
+    setConversation(prev => prev
+      ? { ...prev, messages: [...(prev.messages || []), optimistic] }
+      : prev
+    );
+    setMessage('');
     setSending(true);
+
     try {
-      await sendPrivateMessage(userId, { contenu: message });
-      setMessage('');
-      loadConversation();
-    } catch (err) {
-      alert('Erreur lors de l\'envoi du message');
+      await sendPrivateMessage(userId, { contenu: optimistic.contenu });
+      loadConversation(true);
+    } catch {
+      alert("Erreur lors de l'envoi du message");
+      setConversation(prev => prev
+        ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== optimistic.id) }
+        : prev
+      );
     } finally {
       setSending(false);
     }
@@ -157,6 +189,7 @@ export default function ChatPage() {
               </div>
             ))
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input area */}

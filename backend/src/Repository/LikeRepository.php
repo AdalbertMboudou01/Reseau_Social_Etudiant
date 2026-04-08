@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Like;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -25,5 +26,17 @@ class LikeRepository extends ServiceEntityRepository
             ->setParameter('publicationId', $publicationId)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    public function getLikedPublicationIds(User $user): array
+    {
+        $rows = $this->createQueryBuilder('l')
+            ->select('IDENTITY(l.publication) as pubId')
+            ->where('l.user = :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getScalarResult();
+
+        return array_column($rows, 'pubId');
     }
 }

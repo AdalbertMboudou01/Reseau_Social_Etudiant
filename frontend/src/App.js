@@ -1,25 +1,25 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import HomePage from './pages/HomePage';
-import GroupesPage from './pages/GroupesPage';
-import GroupeDetailPage from './pages/GroupeDetailPage';
-import CoursPage from './pages/CoursPage';
-import MessagesPage from './pages/MessagesPage';
-import ChatPage from './pages/ChatPage';
-import ProfilPage from './pages/ProfilPage';
-import PublicProfilPage from './pages/PublicProfilPage';
-import FriendsPage from './pages/FriendsPage';
-import NotificationCenter from './pages/NotificationCenter';
-import SearchPage from './pages/SearchPage';
-import AdminPage from './pages/AdminPage';
-import CalendarPage from './pages/CalendarPage';
-import EventDetailPage from './pages/EventDetailPage';
-import EventCreatePage from './pages/EventCreatePage';
 import './styles/global.css';
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const HomePage = lazy(() => import('./pages/HomePage'));
+const GroupesPage = lazy(() => import('./pages/GroupesPage'));
+const GroupeDetailPage = lazy(() => import('./pages/GroupeDetailPage'));
+const CoursPage = lazy(() => import('./pages/CoursPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const ProfilPage = lazy(() => import('./pages/ProfilPage'));
+const PublicProfilPage = lazy(() => import('./pages/PublicProfilPage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+const NotificationCenter = lazy(() => import('./pages/NotificationCenter'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
+const EventCreatePage = lazy(() => import('./pages/EventCreatePage'));
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -37,6 +37,7 @@ function PublicRoute({ children }) {
 
 function AppRoutes() {
   return (
+    <Suspense fallback={<span className="spinner" />}>
     <Routes>
       <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -57,6 +58,7 @@ function AppRoutes() {
       <Route path="/evenements/:id" element={<PrivateRoute><EventDetailPage /></PrivateRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Clock, Users, Share2, Check } from 'lucide-react';
 import { getEvenement, inscrireEvenement, quitterEvenement } from '../services/api';
@@ -11,39 +11,52 @@ export default function EventDetailPage() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    console.log('EventDetailPage mounted, id:', id);
-    fetchEvent();
-  }, [id]);
-
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching event:', id);
       const { data } = await getEvenement(id);
-      console.log('Event data received:', data);
       setEvent(data);
     } catch (error) {
-      console.error('Erreur loading event:', error);
-      console.error('Error details:', error.response?.data || error.message);
       setError(error.response?.data?.error || error.message || 'Erreur lors du chargement');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchEvent();
+  }, [fetchEvent]);
 
   const handleRegister = async () => {
+    const wasInscrit = event.estInscrit;
+    // Optimistic update
+    setEvent(prev => ({
+      ...prev,
+      estInscrit: !wasInscrit,
+      nombreInscrits: wasInscrit ? prev.nombreInscrits - 1 : prev.nombreInscrits + 1,
+      estPlein: prev.capaciteMax
+        ? (!wasInscrit ? prev.nombreInscrits + 1 : prev.nombreInscrits - 1) >= prev.capaciteMax
+        : false,
+    }));
+    setIsRegistering(true);
     try {
-      setIsRegistering(true);
-      if (event.estInscrit) {
+      if (wasInscrit) {
         await quitterEvenement(id);
       } else {
         await inscrireEvenement(id);
       }
-      fetchEvent();
+      // Sync silencieux pour récupérer les vraies données
+      const { data } = await getEvenement(id);
+      setEvent(data);
     } catch (error) {
       console.error('Erreur:', error);
+      // Rollback
+      setEvent(prev => ({
+        ...prev,
+        estInscrit: wasInscrit,
+        nombreInscrits: wasInscrit ? prev.nombreInscrits + 1 : prev.nombreInscrits - 1,
+      }));
       alert(error.response?.data?.error || 'Erreur');
     } finally {
       setIsRegistering(false);
