@@ -1,0 +1,5 @@
+# Base SQLite dédiée aux tests (aucun PostgreSQL requis).
+# Prérequis PHP : extension pdo_sqlite (paquet php8.x-sqlite3 sur Debian/Ubuntu).
+doctrine:
+    dbal:
+        url: 'sqlite:///%kernel.project_dir%/var/test.db'

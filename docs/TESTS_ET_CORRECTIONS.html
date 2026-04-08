@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tests et corrections — Social Network (CampusLink)</title>
+  <style>
+    @page { margin: 2cm; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 11pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #333; padding-bottom: 0.35em; }
+    h2 { font-size: 1.2rem; margin-top: 1.5em; color: #222; }
+    h3 { font-size: 1.05rem; margin-top: 1.1em; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 10pt; }
+    th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #f4f4f4; }
+    code, .mono { font-family: ui-monospace, monospace; font-size: 0.9em; }
+    .meta { color: #555; font-size: 10pt; margin-bottom: 2em; }
+    ul { margin: 0.5em 0; padding-left: 1.4em; }
+    .note { background: #f8f8f8; border-left: 4px solid #666; padding: 10px 14px; margin: 1em 0; }
+    figure.capture {
+      margin: 1.4em 0;
+      padding: 0;
+    }
+    figure.capture img {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #bbb;
+      box-sizing: border-box;
+    }
+    figure.capture figcaption {
+      font-size: 10pt;
+      color: #333;
+      margin-top: 0.5em;
+      line-height: 1.35;
+    }
+    .annexe-list { font-size: 10.5pt; }
+    @media print {
+      body { padding: 0; }
+      h2 { page-break-after: avoid; }
+      table { page-break-inside: avoid; }
+      figure.capture { page-break-inside: avoid; }
+      h2.annexe { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Tests et corrections</h1>
+  <p class="meta">
+    <strong>Projet :</strong> Social Network (application web Symfony + React, « CampusLink »)<br />
+    <strong>Document :</strong> rapport de tests et des corrections réalisées sur le dépôt<br />
+    <strong>Date :</strong> avril 2026
+  </p>
+
+  <h2>1. Contexte</h2>
+  <p>
+    L’application est découpée en <strong>backend</strong> (API REST Symfony 7, JWT, PostgreSQL) et
+    <strong>frontend</strong> (React). Le démarrage est documenté dans le README (Docker Compose ou environnement local).
+    Ce document synthétise la stratégie de test pratiquée sur le projet, les constats, et les corrections identifiables
+    dans l’historique du dépôt Git. Les <strong>preuves visuelles</strong> demandées pour le rendu sont regroupées en
+    <a href="#annexes">section&nbsp;6 (Annexes)</a>.
+  </p>
+
+  <h2>2. Stratégie et moyens de test</h2>
+
+  <h3>2.1 Tests manuels et d’intégration</h3>
+  <p>
+    Les parcours utilisateur (inscription, connexion, publications, groupes, événements, amis, etc.) sont validés
+    manuellement via le navigateur, avec le backend joignable (par exemple <span class="mono">http://localhost:8000/api</span>)
+    et le frontend (<span class="mono">http://localhost:3000</span>). Les appels API peuvent aussi être vérifiés avec
+    des outils externes (Postman, curl) en transmettant l’en-tête <span class="mono">Authorization: Bearer &lt;token&gt;</span>
+    après authentification.
+  </p>
+
+  <h3>2.2 Script utilitaire de test API</h3>
+  <p>
+    Le fichier <span class="mono">frontend/public/test-api.js</span> regroupe des appels de débogage vers plusieurs
+    endpoints liés aux amis (<span class="mono">/api/amis</span>, demandes, envoyées, suggestions). Il s’exécute dans
+    la console des outils de développement du navigateur et permet de contrôler rapidement les codes de statut HTTP
+    et le format des réponses JSON.
+  </p>
+
+  <h3>2.3 Tests automatisés backend (PHPUnit)</h3>
+  <p>
+    Le paquet <span class="mono">symfony/test-pack</span> (PHPUnit&nbsp;12) est installé. Les tests vivent sous
+    <span class="mono">backend/tests/</span> :
+  </p>
+  <ul>
+    <li><span class="mono">Functional/ApiTestCase.php</span> — classe de base : client HTTP Symfony, schéma SQLite recréé avant chaque test.</li>
+    <li><span class="mono">Functional/AuthApiTest.php</span> — inscription, validation, login JWT, profil, profil public.</li>
+    <li><span class="mono">Functional/PublicationApiTest.php</span> — liste paginée, création et lecture d’une publication.</li>
+    <li><span class="mono">Functional/AmitieApiTest.php</span> — routes <span class="mono">/api/amis*</span> (401 sans token, 200 + JSON avec token).</li>
+    <li><span class="mono">Unit/Entity/UserValidationTest.php</span> — contraintes Validator sur l’entité <span class="mono">User</span>.</li>
+  </ul>
+  <p>
+    En environnement <span class="mono">test</span>, Doctrine utilise une base <strong>SQLite</strong>
+    (<span class="mono">var/test.db</span>, voir <span class="mono">config/packages/test/doctrine.yaml</span>).
+    Il faut l’extension PHP <strong>pdo_sqlite</strong> (souvent le paquet <span class="mono">php8.x-sqlite3</span>).
+    Les clés JWT manquantes sont générées automatiquement au premier lancement des tests (<span class="mono">tests/bootstrap.php</span>).
+  </p>
+  <p>
+    <strong>Commande :</strong> <span class="mono">cd backend &amp;&amp; composer test</span>
+    (alias de <span class="mono">php bin/phpunit -c phpunit.dist.xml</span>).
+  </p>
+
+  <h3>2.4 Tests automatisés frontend (Jest + Testing Library)</h3>
+  <p>
+    Fichiers <span class="mono">*.test.js</span> sous <span class="mono">frontend/src/</span> :
+    <span class="mono">LoginPage.test.js</span>, <span class="mono">RegisterPage.test.js</span>,
+    <span class="mono">SearchBar.test.js</span>, <span class="mono">services/api.test.js</span>.
+    Le fichier <span class="mono">setupTests.js</span> charge <span class="mono">@testing-library/jest-dom</span> et un
+    polyfill <span class="mono">TextEncoder</span> pour React Router&nbsp;7 sous Jest.
+    La configuration Jest du <span class="mono">package.json</span> redirige les résolutions
+    <span class="mono">react-router-dom</span> / <span class="mono">react-router/dom</span> vers les builds CJS,
+    et autorise la transformation Babel du module <span class="mono">axios</span> (ESM).
+  </p>
+  <p>
+    <strong>Commande :</strong> <span class="mono">cd frontend &amp;&amp; CI=true npm test -- --watchAll=false</span>
+  </p>
+
+  <h2>3. Synthèse des résultats de test (niveau projet)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>État dans le dépôt</th>
+        <th>Commentaire</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Tests Jest (frontend)</td>
+        <td>8 tests, 4 suites</td>
+        <td>Pages login/register, barre de recherche, intercepteur axios ; <span class="mono">npm test</span></td>
+      </tr>
+      <tr>
+        <td>Tests PHPUnit (backend)</td>
+        <td>15 tests (12 fonctionnels + 3 unitaires)</td>
+        <td>API auth, publications, amis, validation User ; <span class="mono">composer test</span> ; SQLite + pdo_sqlite</td>
+      </tr>
+      <tr>
+        <td>Tests manuels / API</td>
+        <td>Pratiqués</td>
+        <td>Parcours UI + script <span class="mono">test-api.js</span> pour les endpoints amis</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. Corrections et évolutions notables (historique Git)</h2>
+  <p>
+    Le tableau suivant reprend des commits représentatifs du dépôt, en mettant l’accent sur les corrections
+    (<span class="mono">fix</span>) et les évolutions majeures. Les identifiants courts permettent de retrouver
+    le détail avec <span class="mono">git show &lt;hash&gt;</span>.
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>Commit</th>
+        <th>Description</th>
+        <th>Nature</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="mono">8fb039d</td>
+        <td>Correction du champ email dans le formulaire de connexion (<span class="mono">fix(login)</span>)</td>
+        <td>Correction fonctionnelle UI</td>
+      </tr>
+      <tr>
+        <td class="mono">026cbe2</td>
+        <td>Réorganisation du code dans le dossier <span class="mono">frontend</span></td>
+        <td>Correction / structure</td>
+      </tr>
+      <tr>
+        <td class="mono">449d80e</td>
+        <td>Réorganisation du dossier <span class="mono">frontend</span></td>
+        <td>Correction / structure</td>
+      </tr>
+      <tr>
+        <td class="mono">b1f7d28</td>
+        <td>Optimisation des performances, backend Docker en mode production</td>
+        <td>Amélioration déploiement / perf</td>
+      </tr>
+      <tr>
+        <td class="mono">938c0ca</td>
+        <td>Fonctionnalités événements (entités, API, calendrier, inscription)</td>
+        <td>Évolution fonctionnelle</td>
+      </tr>
+      <tr>
+        <td class="mono">392fe1c</td>
+        <td>Synchronisation complète du projet (backend, frontend, docs, Docker)</td>
+        <td>Intégration / livraison</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>5. Conclusion</h2>
+  <p>
+    Le projet combine désormais des <strong>tests automatisés</strong> côté API (PHPUnit, flux JWT et ressources métier)
+    et côté interface (Jest, formulaires et recherche), complétés par des <strong>tests manuels</strong> et le script
+    <span class="mono">test-api.js</span> pour les endpoints « amis ». La couverture peut encore être étendue
+    (autres contrôleurs, pages React, tests E2E). Les <strong>corrections</strong> listées en section&nbsp;4 rappellent
+    notamment la correction du login (email), la structuration du frontend, Docker et les événements.
+  </p>
+  <p>
+    <em>Export PDF : depuis le navigateur, « Imprimer → Enregistrer au format PDF », ou en ligne de commande avec
+    Chrome/Chromium : <span class="mono">--headless --print-to-pdf=fichier.pdf fichier.html</span>.</em>
+  </p>
+
+  <h2 id="annexes" class="annexe">6. Annexes — Captures d’écran</h2>
+  <p>
+    Chaque figure correspond à une épreuve de test ou à un élément de correction / outillage. Des images
+    <strong>gabarit</strong> (fichiers PNG dans le dossier <span class="mono">docs/annexes/</span>) sont fournies :
+    remplacez-les par vos propres captures en conservant le <strong>même nom de fichier</strong>, puis régénérez le PDF
+    pour que le document final montre vos écrans réels.
+  </p>
+  <ul class="annexe-list">
+    <li><strong>Capture 1</strong> — interface de connexion (lien avec la correction du champ email, commit <span class="mono">8fb039d</span>).</li>
+    <li><strong>Capture 2</strong> — appel API authentifié (en-tête JWT, réponse JSON, outil type Postman / Insomnia / Thunder Client).</li>
+    <li><strong>Capture 3</strong> — console développeur après exécution du script <span class="mono">test-api.js</span> (endpoints amis).</li>
+    <li><strong>Capture 4</strong> — environnement Docker (par ex. <span class="mono">docker compose ps</span> ou logs montrant services up).</li>
+    <li><strong>Capture 5</strong> — terminal : <span class="mono">npm test</span> (Jest, suites vertes) et, si possible, <span class="mono">composer test</span> dans <span class="mono">backend/</span> (PHPUnit).</li>
+    <li><strong>Capture 6</strong> — historique Git des corrections (terminal <span class="mono">git log</span> ou interface graphique).</li>
+  </ul>
+
+  <figure class="capture">
+    <img src="annexes/capture-01-connexion.png" alt="Capture 1 — Page de connexion" width="920" height="400" />
+    <figcaption><strong>Fig. 1</strong> — Page de connexion de l’application (frontend sur <span class="mono">localhost:3000</span>), illustrant le parcours de test manuel et la correction du formulaire login.</figcaption>
+  </figure>
+
+  <figure class="capture">
+    <img src="annexes/capture-02-api-jwt.png" alt="Capture 2 — Requête API avec JWT" width="920" height="400" />
+    <figcaption><strong>Fig. 2</strong> — Test d’intégration API : requête authentifiée (<span class="mono">Authorization: Bearer …</span>) et corps ou statut de réponse visible.</figcaption>
+  </figure>
+
+  <figure class="capture">
+    <img src="annexes/capture-03-console-test-api.png" alt="Capture 3 — Console test-api.js" width="920" height="400" />
+    <figcaption><strong>Fig. 3</strong> — Console du navigateur : exécution du script <span class="mono">frontend/public/test-api.js</span> (vérification des routes <span class="mono">/api/amis</span>, demandes, envoyées, suggestions).</figcaption>
+  </figure>
+
+  <figure class="capture">
+    <img src="annexes/capture-04-docker.png" alt="Capture 4 — Docker" width="920" height="400" />
+    <figcaption><strong>Fig. 4</strong> — Vérification de l’environnement conteneurisé (aligné avec les évolutions Docker / production du dépôt).</figcaption>
+  </figure>
+
+  <figure class="capture">
+    <img src="annexes/capture-05-npm-test.png" alt="Capture 5 — npm test" width="920" height="400" />
+    <figcaption><strong>Fig. 5</strong> — Sortie des tests automatisés frontend (<span class="mono">npm test</span>, Jest) ; ajouter une capture distincte pour <span class="mono">composer test</span> (PHPUnit) si le rendu l’exige.</figcaption>
+  </figure>
+
+  <figure class="capture">
+    <img src="annexes/capture-06-git-log.png" alt="Capture 6 — Historique Git" width="920" height="400" />
+    <figcaption><strong>Fig. 6</strong> — Extraits de l’historique Git mettant en évidence les commits de type <span class="mono">fix</span> et les livraisons notables.</figcaption>
+  </figure>
+
+</body>
+</html>
