@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,7 +20,8 @@ class AuthController extends AbstractController
         Request $request,
         UserPasswordHasherInterface $passwordHasher,
         EntityManagerInterface $em,
-        ValidatorInterface $validator
+        ValidatorInterface $validator,
+        UserRepository $userRepository
     ): JsonResponse {
         $data = json_decode($request->getContent(), true);
 
@@ -27,8 +29,15 @@ class AuthController extends AbstractController
             return $this->json(['error' => 'Données invalides'], 400);
         }
 
+        $email = $data['email'] ?? '';
+
+        $existingUser = $userRepository->findOneBy(['email' => $email]);
+        if ($existingUser) {
+            return $this->json(['error' => 'Cette adresse email est déjà utilisée'], 409);
+        }
+
         $user = new User();
-        $user->setEmail($data['email'] ?? '');
+        $user->setEmail($email);
         $user->setNom($data['nom'] ?? '');
         $user->setPrenom($data['prenom'] ?? '');
         $user->setRoles(['ROLE_ETUDIANT']);
@@ -62,8 +71,12 @@ class AuthController extends AbstractController
         $hashedPassword = $passwordHasher->hashPassword($user, $data['password']);
         $user->setPassword($hashedPassword);
 
-        $em->persist($user);
-        $em->flush();
+        try {
+            $em->persist($user);
+            $em->flush();
+        } catch (\Exception $e) {
+            return $this->json(['error' => 'Erreur lors de la création du compte. Veuillez réessayer.'], 500);
+        }
 
         return $this->json([
             'message' => 'Utilisateur créé avec succès',
